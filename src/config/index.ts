@@ -1,0 +1,3 @@
+export const dom = 'cesiumContainer'
+
+export const ion = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJqdGkiOiJmOTQ3NjE0OC01M2JjLTQ4ZGMtYjg5Yy1iMTA3YTAwOTZlY2MiLCJpZCI6MTMzNjQ5LCJpYXQiOjE2ODE0Mzk3NDh9.UDRUtl0f8NjaaXPmMomF-1ZpsbqOgP3cv7orv0fqIFw'

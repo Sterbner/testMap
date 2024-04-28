@@ -1,0 +1,27 @@
+{
+  "name": "cesiummultiplecodetest",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vue-tsc && vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "axios": "^1.6.2",
+    "cesium": "^1.81.0",
+    "cesium-navigation-es6": "^3.0.8",
+    "element-plus": "^2.4.2",
+    "pinia": "^2.1.7",
+    "vite-plugin-cesium": "^1.2.22",
+    "vue": "^3.4.21",
+    "vue-router": "^4.2.5"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-vue": "^5.0.4",
+    "typescript": "^5.2.2",
+    "vite": "^5.2.0",
+    "vue-tsc": "^2.0.6"
+  }
+}
