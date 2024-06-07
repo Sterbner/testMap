@@ -7,6 +7,7 @@
 </template>
 
 <script lang='ts' setup>
+
 import {initViewer} from '../class/CesiumController'
 import { onMounted } from 'vue';
 import { cesiumController } from '../bean/bean';
@@ -16,6 +17,7 @@ onMounted(()=>{
   initViewer()
   initBean()
   cesiumController.loadMap()
+  cesiumController.initPostProcessing()
 })
 
 </script>
