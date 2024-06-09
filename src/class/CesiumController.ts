@@ -62,12 +62,14 @@ export class CesiumController {
      * 改变viewer的部分panel
      */
     private async initCesiumViewer (){
+        const newYorkPosition = Cesium.Cartesian3.fromDegrees( -74.0060 , 40.7128 , 200)
         viewer.scene.camera.setView({
-            destination: new Cesium.Cartesian3(
-              1216356.033078094,
-              -4736402.278325668,
-              4081270.375520902
-            ),
+            // destination: new Cesium.Cartesian3(
+            //   1216356.033078094,
+            //   -4736402.278325668,
+            //   4081270.375520902
+            // ),
+            destination:newYorkPosition,
             orientation: new Cesium.HeadingPitchRoll(
               0.08033365594766728,
               -0.29519015695063455,
@@ -86,6 +88,8 @@ export class CesiumController {
 
     }   
 
+
+    /* 初始版 */
     // initPostProcessing(){
     //     const fragmentShaderSource = `
     //     float getDistance(sampler2D depthTexture, vec2 texCoords) 
@@ -137,26 +141,124 @@ export class CesiumController {
     // }
 
 
+
+    /* 添加噪音和流动效果的深度雾版本 */
+    // initPostProcessing(){
+    //     const fragmentShaderSource = 
+    //     `float getDistance(sampler2D depthTexture, vec2 texCoords) 
+    //     { 
+    //         float depth = czm_unpackDepth(texture(depthTexture, texCoords)); 
+    //         // if (depth == 0.0) { 
+    //         //     return czm_infinity; 
+    //         // } 
+    //         vec4 eyeCoordinate = czm_windowToEyeCoordinates(gl_FragCoord.xy, depth);
+    //         vec4 worldPosition = czm_inverseView * eyeposition;
+    //         return -eyeCoordinate.z / eyeCoordinate.w; 
+    //     } 
+
+    //     // float interpolateByDistance(vec4 nearFarScalar, float distance) 
+    //     // { 
+    //     //     float startDistance = nearFarScalar.x; 
+    //     //     float startValue = nearFarScalar.y; 
+    //     //     float endDistance = nearFarScalar.z; 
+    //     //     float endValue = nearFarScalar.w; 
+    //     //     float t = clamp((distance - startDistance) / (endDistance - startDistance), 0.0, 1.0); 
+    //     //     return mix(startValue, endValue, t); 
+    //     // } 
+
+    //     float interpolateByDistance(vec4 nearFarScalar, float distance) 
+    //     { 
+    //         float startDistance = nearFarScalar.x; 
+    //         float startValue = nearFarScalar.y; 
+    //         float endDistance = nearFarScalar.z; 
+    //         float endValue = nearFarScalar.w; 
+    //         // float t = abs((distance - startDistance) / (endDistance - startDistance));
+    //         float t = clamp((distance - startDistance) / (endDistance - startDistance), 0.0, 1.2);
+    //         return t; 
+    //     } 
+
+    //     vec4 alphaBlend(vec4 sourceColor, vec4 destinationColor) 
+    //     { 
+    //         return sourceColor * vec4(sourceColor.aaa, 1.0) + destinationColor * (1.0 - sourceColor.a); 
+    //     } 
+    //     uniform sampler2D noiseTexture;
+    //     uniform sampler2D colorTexture; 
+    //     uniform sampler2D depthTexture; 
+    //     uniform vec4 fogByDistance; 
+    //     uniform vec4 fogColor;
+    //     uniform float speed; 
+    //     // uniform float czm_frameNumber;
+    //     in vec2 v_textureCoordinates; 
+    //     void main(void) 
+    //     { 
+    //         vec2 noiseCoord = v_textureCoordinates * 0.05;
+    //         // vec4 noise = texture(noiseTexture, noiseCoord);
+    //         vec4 noise = texture(noiseTexture, vec2(fract((noiseCoord.x - speed * czm_frameNumber * 0.0001)),noiseCoord.y)) ;
+    //         float noiseFloat = ((noise.r + noise.g + noise.b) / 3.0) - 0.5 ;
+    //         float distance = getDistance(depthTexture, v_textureCoordinates); 
+    //         vec4 sceneColor = texture(colorTexture, v_textureCoordinates); 
+    //         float blendAmount = interpolateByDistance(fogByDistance, distance); 
+
+    //     //  vec2 noiseCoord = v_textureCoordinates * 0.2;
+    //     //  vec4 noise = texture(noiseTexture, noiseCoord);
+    //     //  float noiseFloat = (noise.r + noise.g + noise.b) / 3.0 ;
+    //     //  vec4 mixedFogColor = noise * fogColor;
+            
+    //          float aphaValue = clamp(fogColor.a * (blendAmount - noiseFloat * 0.2 * blendAmount), 0.0, 1.0);
+
+    //         // vec4 finalFogColor = vec4(fogColor.rgb, fogColor.a * blendAmount );
+
+    //         vec4 finalFogColor = vec4(fogColor.rgb, aphaValue );
+    
+    //     // vec4 mixColor = mix( noise , finalFogColor, 0.95) ;
+    //         out_FragColor = alphaBlend(finalFogColor, sceneColor);
+
+    //     }
+    //     `;
+
+
     initPostProcessing(){
         const fragmentShaderSource = 
-        `float getDistance(sampler2D depthTexture, vec2 texCoords) 
+        `vec2 getDistance(sampler2D depthTexture, vec2 texCoords) 
         { 
             float depth = czm_unpackDepth(texture(depthTexture, texCoords)); 
-            if (depth == 0.0) { 
-                return czm_infinity; 
-            } 
-            vec4 eyeCoordinate = czm_windowToEyeCoordinates(gl_FragCoord.xy, depth); 
-            return -eyeCoordinate.z / eyeCoordinate.w; 
+            // if (depth == 0.0) { 
+            //     return czm_infinity; 
+            // } 
+            vec4 eyeCoordinate = czm_windowToEyeCoordinates(gl_FragCoord.xy, depth);
+            vec4 worldPosition = czm_inverseView * eyeCoordinate;
+            // return -eyeCoordinate.z / eyeCoordinate.w;
+             
+            return vec2(-eyeCoordinate.z / eyeCoordinate.w, worldPosition.z / worldPosition.w);
         } 
+
+        // float interpolateByDistance(vec4 nearFarScalar, float distance) 
+        // { 
+        //     float startDistance = nearFarScalar.x; 
+        //     float startValue = nearFarScalar.y; 
+        //     float endDistance = nearFarScalar.z; 
+        //     float endValue = nearFarScalar.w; 
+        //     float t = clamp((distance - startDistance) / (endDistance - startDistance), 0.0, 1.0); 
+        //     return mix(startValue, endValue, t); 
+        // }
+
+        float interpolateByHeight(float height, float maxHeight)
+        {
+            float result = clamp ( height / maxHeight , 0.0, 1.0);
+            return result;
+        }
+
         float interpolateByDistance(vec4 nearFarScalar, float distance) 
         { 
             float startDistance = nearFarScalar.x; 
             float startValue = nearFarScalar.y; 
             float endDistance = nearFarScalar.z; 
             float endValue = nearFarScalar.w; 
-            float t = clamp((distance - startDistance) / (endDistance - startDistance), 0.0, 1.0); 
-            return mix(startValue, endValue, t); 
+            // float t = abs((distance - startDistance) / (endDistance - startDistance));
+            float t = clamp((distance - startDistance) / (endDistance - startDistance), 0.0, 1.2);
+            return t; 
         } 
+
         vec4 alphaBlend(vec4 sourceColor, vec4 destinationColor) 
         { 
             return sourceColor * vec4(sourceColor.aaa, 1.0) + destinationColor * (1.0 - sourceColor.a); 
@@ -165,28 +267,23 @@ export class CesiumController {
         uniform sampler2D colorTexture; 
         uniform sampler2D depthTexture; 
         uniform vec4 fogByDistance; 
-        uniform vec4 fogColor; 
+        uniform vec4 fogColor;
+        uniform float speed; 
         // uniform float czm_frameNumber;
         in vec2 v_textureCoordinates; 
         void main(void) 
         { 
-            vec2 noiseCoord = v_textureCoordinates * 0.1;
-            vec4 noise = texture(noiseTexture, noiseCoord);
-            float noiseFloat = (noise.r + noise.g + noise.b) / 3.0 ;
+            vec2 noiseCoord = v_textureCoordinates * 0.05;
 
-            float distance = getDistance(depthTexture, v_textureCoordinates); 
+            vec4 noise = texture(noiseTexture, vec2(fract((noiseCoord.x - speed * czm_frameNumber * 0.0001)),noiseCoord.y)) ;
+            float noiseFloat = ((noise.r + noise.g + noise.b) / 3.0) - 0.5 ;
+            // float distance = getDistance(depthTexture, v_textureCoordinates);
+            vec2 distance = getDistance(depthTexture, v_textureCoordinates); 
             vec4 sceneColor = texture(colorTexture, v_textureCoordinates); 
-            
-            float blendAmount = interpolateByDistance(fogByDistance, distance); 
-
-        //  vec2 noiseCoord = v_textureCoordinates * 0.2;
-        //  vec4 noise = texture(noiseTexture, noiseCoord);
-        //  float noiseFloat = (noise.r + noise.g + noise.b) / 3.0 ;
-        //  vec4 mixedFogColor = noise * fogColor;
-            
-             float aphaValue = clamp(fogColor.a * (blendAmount - noiseFloat*0.1), 0.0, 1.0);
-
-            // vec4 finalFogColor = vec4(fogColor.rgb, fogColor.a * blendAmount );
+            float blendAmount = interpolateByDistance(fogByDistance, distance.x); 
+            // float heightBlendAmount = interpolateByDistance(distance.y, 100.0);
+            float heightBlendAmount = clamp(distance.y / 100000.0, 0.0, 1.0);
+            float aphaValue = clamp(fogColor.a * (blendAmount - noiseFloat * 0.2 * blendAmount), 0.0, 1.0);
 
             vec4 finalFogColor = vec4(fogColor.rgb, aphaValue );
     
@@ -196,17 +293,14 @@ export class CesiumController {
         }
         `;
         
-        // const noiseTexture = new Cesium.TextureUniform({
-        //     url:'/noise.jpg'
-        //     // url: noiseImage
-        // })
         this.viewer.scene.postProcessStages.add(
             new Cesium.PostProcessStage({
               fragmentShader: fragmentShaderSource,
               uniforms: {
                 noiseTexture: '/noise.jpg',
-                fogByDistance: new Cesium.Cartesian4(1, 0.0, 300, 1.0),
+                fogByDistance: new Cesium.Cartesian4(1, 0.0, 1000, 1.0),
                 fogColor: Cesium.Color.WHITE,
+                speed:1
                 },
             })
           );

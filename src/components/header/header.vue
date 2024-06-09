@@ -1,9 +1,9 @@
 <template>
-  <div id="header">
+  <!-- <div id="header">
     <el-button type="primary" style="left: 0;position: fixed;">
       Add Arrow Line
     </el-button>
-  </div>
+  </div> -->
 </template>
 
 <script lang='ts' setup>
