@@ -2,9 +2,9 @@ import * as Cesium from 'cesium'
 import {dom,ion} from '../config/index'
 import CesiumNavigation from "cesium-navigation-es6";
 import noiseImage from '/noise.jpg'
+import rainImage from '/rainy.png'
 
-
-let viewer:Cesium.Viewer
+let _viewer:Cesium.Viewer
 
 /**
  * Viewer实例化
@@ -13,7 +13,7 @@ let viewer:Cesium.Viewer
 export const initViewer = ()=>{
 
     Cesium.Ion.defaultAccessToken = ion;
-    viewer = new Cesium.Viewer(dom,{
+    _viewer = new Cesium.Viewer(dom,{
         timeline: false,//是否显示时间轴
         animation: false,//是否创建动画小控件，左下角仪表
         sceneModePicker: false,//是否显示2D，3D选择器
@@ -31,39 +31,119 @@ export const initViewer = ()=>{
 
 export class CesiumController {
     viewer: Cesium.Viewer
+    entities: any[]
     constructor (){
-        this.viewer = viewer
+        this.viewer = _viewer
+        this.entities = []
     }
-
-
-    // private initViewer = ()=>{
-    //     let viewer
-    //     Cesium.Ion.defaultAccessToken = ion;
-    //     viewer = new Cesium.Viewer(dom,{
-    //         timeline: false,//是否显示时间轴
-    //         animation: false,//是否创建动画小控件，左下角仪表
-    //         sceneModePicker: false,//是否显示2D，3D选择器
-    //         baseLayerPicker: false,//是否显示图层选择器
-    //         navigationHelpButton: false,//是否显示右上角的帮助按钮
-    //         homeButton: false,//是否显示Home按钮
-    //         geocoder: false,//是否显示geocoder小器件，右上角查询按钮
-    //         fullscreenButton: true,//是否显示全屏按钮
-    //         infoBox: false,//选中实体时所显示的信息框
-    //         //实现对高程的加载，展现出3D图像
-    //     })
-    //     return viewer
-    // }
 
     public getViewer () {
         return this.viewer
     }
+
+    initRain (){
+        for (var lon = -74.0; lon < -73.9; lon += 0.01) {
+            for (var lat = 40.0; lat < 40.1; lat += 0.01) {
+                this.entities.push(this.viewer.entities.add({
+                    position: Cesium.Cartesian3.fromDegrees((lon + lon + 0.01) / 2, (lat + lat + 0.01) / 2, 100),
+                    point: {
+                        pixelSize: 5,
+                        color: Cesium.Color.RED,
+                        outlineColor: Cesium.Color.WHITE,
+                        outlineWidth: 2,
+                        show: false
+                    }
+                }));
+            }
+        }
+        for (var i = 0; i < this.entities.length; i++) {
+            console.log('adding particle');
+            
+            this.viewer.scene.primitives.add(new Cesium.ParticleSystem({
+                image: rainImage,
+                startColor: Cesium.Color.GHOSTWHITE,
+                endColor: Cesium.Color.GHOSTWHITE,
+                startScale: 5,
+                endScale: 5,
+                // time: 20,
+                speed: Math.floor(Math.random() * 20 + 1),//随机速度
+                // width: 10,  // 设置以像素为单位的粒子的最小和最大宽度
+                // height: 10, //设置粒子的最小和最大高度（以像素为单位）。
+                imageSize:new Cesium.Cartesian2(10.0,10.0),
+                emissionRate: 5, //每秒发射的粒子数量
+                lifetime: 16, //多长时间的粒子系统将以秒为单位发射粒子
+                loop: true, //是否粒子系统应该在完成时循环它的爆发
+                emitter: new Cesium.CircleEmitter(0.5), //此系统的粒子发射器  共有 BoxEmitter,CircleEmitter,ConeEmitter,SphereEmitter 几类
+                emitterModelMatrix: this.computeEmitterModelMatrix(), // 4x4转换矩阵，用于在粒子系统本地坐标系中转换粒子系统发射器
+                modelMatrix: this.computeModelMatrix(this.entities[i], Cesium.JulianDate.now()), // 4x4转换矩阵，可将粒子系统从模型转换为世界坐标
+                updateCallback: this.applyGravity // 强制回调函数--例子：这是添加重力效果
+            }))
+        }
+
+    }
+
+    computeModelMatrix(entity:any, time:any){
+        return entity.computeModelMatrix(time, new Cesium.Matrix4())
+    }
+
+    // computeModelMatrix(entity : any, time: any) {
+    //     var position = Cesium.Property.getValueOrUndefined(time, new Cesium.Cartesian3());
+    //     if (!Cesium.defined(position)) {
+    //         return undefined;
+    //     }
+    //     var orientation = Cesium.Property.getValueOrUndefined(time, new Cesium.Quaternion());
+    //     var modelMatrix = null;
+    //     if (!Cesium.defined(orientation)) {
+    //         modelMatrix = Cesium.Transforms.eastNorthUpToFixedFrame(position, undefined, new Cesium.Matrix4());
+    //     } else {
+    //         modelMatrix = Cesium.Matrix4.fromRotationTranslation(Cesium.Matrix3.fromQuaternion(orientation, new Cesium.Matrix3()), position, modelMatrix);
+    //     }
+    //     return modelMatrix;
+    // }
+
+    // computeEmitterModelMatrix() {
+    //     var hpr = Cesium.HeadingPitchRoll.fromDegrees(0, 0, 0, new Cesium.HeadingPitchRoll());
+    //     var trs = new Cesium.TranslationRotationScale();
+    //     trs.translation = Cesium.Cartesian3.fromElements(0, 0, 0, new Cesium.Cartesian3());
+    //     trs.rotation = Cesium.Quaternion.fromHeadingPitchRoll(hpr, new Cesium.Quaternion());
+    //     return Cesium.Matrix4.fromTranslationRotationScale(trs, new Cesium.Matrix4());
+    // }
+
+    computeEmitterModelMatrix() {
+        const emitterModelMatrix = new Cesium.Matrix4()
+        const translation = new Cesium.Cartesian3();
+        let hpr = new Cesium.HeadingPitchRoll();
+        const trs = new Cesium.TranslationRotationScale();
+        const rotation = new Cesium.Quaternion()
+        hpr = Cesium.HeadingPitchRoll.fromDegrees(0.0, 0.0, 0.0, hpr);
+        trs.translation = Cesium.Cartesian3.fromElements(
+          -4.0,
+          0.0,
+          1.4,
+          translation
+        );
+        trs.rotation = Cesium.Quaternion.fromHeadingPitchRoll(hpr, rotation);
+      
+        return Cesium.Matrix4.fromTranslationRotationScale(
+          trs,
+          emitterModelMatrix
+        );
+      }
+
+    applyGravity(particle: any, dt:any) {
+        var position = particle.position;
+        var gravityVector = Cesium.Cartesian3.normalize(position, new Cesium.Cartesian3());
+        Cesium.Cartesian3.multiplyByScalar(gravityVector, -100 * dt, gravityVector);
+        particle.velocity = Cesium.Cartesian3.add(particle.velocity, gravityVector, particle.velocity);
+    }
+
 
     /**
      * 改变viewer的部分panel
      */
     private async initCesiumViewer (){
         const newYorkPosition = Cesium.Cartesian3.fromDegrees( -74.0060 , 40.7128 , 200)
-        viewer.scene.camera.setView({
+        this.viewer.scene.camera.setView({
             // destination: new Cesium.Cartesian3(
             //   1216356.033078094,
             //   -4736402.278325668,
@@ -85,7 +165,7 @@ export class CesiumController {
         const tileset = this.viewer.scene.primitives.add(
             await Cesium.Cesium3DTileset.fromIonAssetId(2275207),
           );
-
+        this.viewer.scene.debugShowFramesPerSecond = true;
     }   
 
 
@@ -274,7 +354,7 @@ export class CesiumController {
         void main(void) 
         { 
             vec2 noiseCoord = v_textureCoordinates * 0.05;
-
+      
             vec4 noise = texture(noiseTexture, vec2(fract((noiseCoord.x - speed * czm_frameNumber * 0.0001)),noiseCoord.y)) ;
             float noiseFloat = ((noise.r + noise.g + noise.b) / 3.0) - 0.5 ;
             // float distance = getDistance(depthTexture, v_textureCoordinates);
@@ -293,17 +373,17 @@ export class CesiumController {
         }
         `;
         
-        this.viewer.scene.postProcessStages.add(
-            new Cesium.PostProcessStage({
-              fragmentShader: fragmentShaderSource,
-              uniforms: {
-                noiseTexture: '/noise.jpg',
-                fogByDistance: new Cesium.Cartesian4(1, 0.0, 1000, 1.0),
-                fogColor: Cesium.Color.WHITE,
-                speed:1
-                },
-            })
-          );
+        // this.viewer.scene.postProcessStages.add(
+        //     new Cesium.PostProcessStage({
+        //       fragmentShader: fragmentShaderSource,
+        //       uniforms: {
+        //         noiseTexture: '/noise.jpg',
+        //         fogByDistance: new Cesium.Cartesian4(1, 0.0, 1000, 1.0),
+        //         fogColor: Cesium.Color.WHITE,
+        //         speed:1
+        //         },
+        //     })
+        //   );
 
     }
 
@@ -348,6 +428,16 @@ export class CesiumController {
         this.createNavigation()
         this.initTerrain()
     }
+
+    
+
+
+
+
+
+
+
+
 
 
 }
