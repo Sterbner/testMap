@@ -161,7 +161,7 @@ export class CesiumController {
         this.viewer.selectedEntityChanged.addEventListener(function (this:any,_:any) {
         this.viewer.selectedEntity = undefined;
         });
-        this.viewer.scene.globe.depthTestAgainstTerrain = false
+        this.viewer.scene.globe.depthTestAgainstTerrain = true
         const tileset = this.viewer.scene.primitives.add(
             await Cesium.Cesium3DTileset.fromIonAssetId(2275207),
           );
@@ -297,8 +297,111 @@ export class CesiumController {
     //     `;
 
 
+
+
+
+    // initPostProcessing(){
+    //     const fragmentShaderSource = 
+        
+    //     `vec2 getDistance(sampler2D depthTexture, vec2 texCoords) 
+    //     { 
+    //         float depth = czm_unpackDepth(texture(depthTexture, texCoords)); 
+    //         // if (depth == 0.0) { 
+    //         //     return czm_infinity; 
+    //         // } 
+    //         vec4 eyeCoordinate = czm_windowToEyeCoordinates(gl_FragCoord.xy, depth);
+
+    //         // 拿到世界坐标
+    //         vec4 positionWorld = czm_inverseModelView * vec4(gl_FragCoord.xyz, 1.0);
+    //         vec3 worldPosition = positionWorld.xyz / positionWorld.w;
+
+    //         //vec4 worldPosition = czm_inverseView * eyeCoordinate;
+
+
+    //         // return -eyeCoordinate.z / eyeCoordinate.w;
+    //         //return vec2(-eyeCoordinate.z / eyeCoordinate.w, worldPosition.z / worldPosition.w);
+    //         return vec2(-eyeCoordinate.z / eyeCoordinate.w, worldPosition.z);
+    //     } 
+
+    //     // float interpolateByDistance(vec4 nearFarScalar, float distance) 
+    //     // { 
+    //     //     float startDistance = nearFarScalar.x; 
+    //     //     float startValue = nearFarScalar.y; 
+    //     //     float endDistance = nearFarScalar.z; 
+    //     //     float endValue = nearFarScalar.w; 
+    //     //     float t = clamp((distance - startDistance) / (endDistance - startDistance), 0.0, 1.0); 
+    //     //     return mix(startValue, endValue, t); 
+    //     // }
+
+    //     float interpolateByHeight(float height, float maxHeight)
+    //     {
+    //         float result = clamp ( height / maxHeight , 0.0, 1.0);
+    //         return result;
+    //     }
+
+    //     float interpolateByDistance(vec4 nearFarScalar, float distance) 
+    //     { 
+    //         float startDistance = nearFarScalar.x; 
+    //         float startValue = nearFarScalar.y; 
+    //         float endDistance = nearFarScalar.z; 
+    //         float endValue = nearFarScalar.w; 
+    //         // float t = abs((distance - startDistance) / (endDistance - startDistance));
+    //         float t = clamp((distance - startDistance) / (endDistance - startDistance), 0.0, 1.2);
+    //         return t; 
+    //     } 
+
+    //     vec4 alphaBlend(vec4 sourceColor, vec4 destinationColor) 
+    //     { 
+    //         return sourceColor * vec4(sourceColor.aaa, 1.0) + destinationColor * (1.0 - sourceColor.a); 
+    //     } 
+    //     uniform sampler2D noiseTexture;
+    //     uniform sampler2D colorTexture; 
+    //     uniform sampler2D depthTexture; 
+    //     uniform vec4 fogByDistance; 
+    //     uniform vec4 fogColor;
+    //     uniform float speed; 
+    //     // uniform float czm_frameNumber;
+    //     in vec2 v_textureCoordinates; 
+    //     void main(void) 
+    //     { 
+    //         vec2 noiseCoord = v_textureCoordinates * 0.05;
+      
+    //         vec4 noise = texture(noiseTexture, vec2(fract((noiseCoord.x - speed * czm_frameNumber * 0.0001)),noiseCoord.y)) ;
+    //         float noiseFloat = ((noise.r + noise.g + noise.b) / 3.0) - 0.5 ;
+    //         // float distance = getDistance(depthTexture, v_textureCoordinates);
+    //         vec2 distance = getDistance(depthTexture, v_textureCoordinates); 
+    //         vec4 sceneColor = texture(colorTexture, v_textureCoordinates); 
+    //         float blendAmount = interpolateByDistance(fogByDistance, distance.x); 
+    //         // float heightBlendAmount = interpolateByDistance(distance.x, 100.0);
+    //         float heightBlendAmount = clamp(distance.x / 100000.0, 0.0, 1.0);
+    //         float aphaValue = clamp(fogColor.a * (blendAmount - noiseFloat * 0.2 * blendAmount), 0.0, 1.0);
+
+    //         vec4 finalFogColor = vec4(fogColor.rgb, aphaValue );
+    
+    //     // vec4 mixColor = mix( noise , finalFogColor, 0.95) ;
+    //         out_FragColor = alphaBlend(finalFogColor, sceneColor);
+
+    //     }
+    //     `;
+        
+    //     this.viewer.scene.postProcessStages.add(
+    //         new Cesium.PostProcessStage({
+    //           fragmentShader: fragmentShaderSource,
+    //           uniforms: {
+    //             noiseTexture: '/noise.jpg',
+    //             fogByDistance: new Cesium.Cartesian4(1, 0.0, 1000, 1.0),
+    //             fogColor: Cesium.Color.WHITE,
+    //             speed:1
+    //             },
+    //         })
+    //       );
+
+    // }
+
+
     initPostProcessing(){
         const fragmentShaderSource = 
+        
         `vec2 getDistance(sampler2D depthTexture, vec2 texCoords) 
         { 
             float depth = czm_unpackDepth(texture(depthTexture, texCoords)); 
@@ -306,10 +409,17 @@ export class CesiumController {
             //     return czm_infinity; 
             // } 
             vec4 eyeCoordinate = czm_windowToEyeCoordinates(gl_FragCoord.xy, depth);
-            vec4 worldPosition = czm_inverseView * eyeCoordinate;
+
+            // 拿到世界坐标
+            vec4 positionWorld = czm_inverseModelView * vec4(gl_FragCoord.xyz, 1.0);
+            vec3 worldPosition = positionWorld.xyz / positionWorld.w;
+
+            //vec4 worldPosition = czm_inverseView * eyeCoordinate;
+
+
             // return -eyeCoordinate.z / eyeCoordinate.w;
-             
-            return vec2(-eyeCoordinate.z / eyeCoordinate.w, worldPosition.z / worldPosition.w);
+            //return vec2(-eyeCoordinate.z / eyeCoordinate.w, worldPosition.z / worldPosition.w);
+            return vec2(-eyeCoordinate.z / eyeCoordinate.w, worldPosition.z);
         } 
 
         // float interpolateByDistance(vec4 nearFarScalar, float distance) 
@@ -353,39 +463,29 @@ export class CesiumController {
         in vec2 v_textureCoordinates; 
         void main(void) 
         { 
-            vec2 noiseCoord = v_textureCoordinates * 0.05;
-      
-            vec4 noise = texture(noiseTexture, vec2(fract((noiseCoord.x - speed * czm_frameNumber * 0.0001)),noiseCoord.y)) ;
-            float noiseFloat = ((noise.r + noise.g + noise.b) / 3.0) - 0.5 ;
-            // float distance = getDistance(depthTexture, v_textureCoordinates);
-            vec2 distance = getDistance(depthTexture, v_textureCoordinates); 
+            vec4 positionEC = czm_inverseModelView * vec4(gl_FragCoord.xyz, 1.0);
+            vec3 worldPosition = positionEC.xyz / positionEC.w;
             vec4 sceneColor = texture(colorTexture, v_textureCoordinates); 
-            float blendAmount = interpolateByDistance(fogByDistance, distance.x); 
-            // float heightBlendAmount = interpolateByDistance(distance.y, 100.0);
-            float heightBlendAmount = clamp(distance.y / 100000.0, 0.0, 1.0);
-            float aphaValue = clamp(fogColor.a * (blendAmount - noiseFloat * 0.2 * blendAmount), 0.0, 1.0);
-
-            vec4 finalFogColor = vec4(fogColor.rgb, aphaValue );
-    
-        // vec4 mixColor = mix( noise , finalFogColor, 0.95) ;
-            out_FragColor = alphaBlend(finalFogColor, sceneColor);
-
+            // out_FragColor = vec4(worldPosition * 0.0001, 1.0); // 颜色缩放以可视化
+            vec4 fingalFogColor = vec4(fogColor.xyz,0.5);
+             out_FragColor = alphaBlend(fingalFogColor,sceneColor);
         }
         `;
         
-        // this.viewer.scene.postProcessStages.add(
-        //     new Cesium.PostProcessStage({
-        //       fragmentShader: fragmentShaderSource,
-        //       uniforms: {
-        //         noiseTexture: '/noise.jpg',
-        //         fogByDistance: new Cesium.Cartesian4(1, 0.0, 1000, 1.0),
-        //         fogColor: Cesium.Color.WHITE,
-        //         speed:1
-        //         },
-        //     })
-        //   );
+        this.viewer.scene.postProcessStages.add(
+            new Cesium.PostProcessStage({
+              fragmentShader: fragmentShaderSource,
+              uniforms: {
+                noiseTexture: '/noise.jpg',
+                fogByDistance: new Cesium.Cartesian4(1, 0.0, 1000, 1.0),
+                fogColor: Cesium.Color.WHITE,
+                speed:1
+                },
+            })
+          );
 
     }
+
 
     createNavigation() {
         const options: any = {};
