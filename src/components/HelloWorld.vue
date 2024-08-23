@@ -24,7 +24,7 @@ onMounted(() => {
   initViewer()
   initBean()
   cesiumController.loadMap()
-  cesiumController.initPostProcessing()
+  // cesiumController.initPostProcessing()
   // cesiumController.initRain()
 
 })
